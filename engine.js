@@ -4,9 +4,9 @@
  ***********************************************************************/
 const COMMERCIAL_CONFIG = {
   WHATSAPP_PHONE: "51964343967", // Tu número con código de país (51 para Perú)
-  PRICE_DISPLAY: "S/ 15.00",
+  PRICE_DISPLAY: "S/ 10.00",
   // Pega aquí la URL de tu Google Apps Script cuando la publiques (opcional al inicio)
-  GOOGLE_SCRIPT_URL: "",
+  GOOGLE_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbwH386j_ZhcQafxhKNB0KrzJp06UOhlFErshyORBT83r1X33YYsnW2yp9R90hERWiy0/exec",
   // Códigos maestros locales para que puedas probar el desbloqueo al instante:
   MASTER_CODES: ["PYQ-2026-PRO1", "PYQ-ADMIN-JGM"]
 };
