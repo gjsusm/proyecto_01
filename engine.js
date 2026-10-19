@@ -5,9 +5,7 @@
 const COMMERCIAL_CONFIG = {
   WHATSAPP_PHONE: "51964343967", // Tu número con código de país (51 para Perú)
   PRICE_DISPLAY: "S/ 10.00",
-  // Pega aquí la URL de tu Google Apps Script cuando la publiques (opcional al inicio)
-  GOOGLE_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbwH386j_ZhcQafxhKNB0KrzJp06UOhlFErshyORBT83r1X33YYsnW2yp9R90hERWiy0/exec",
-  // Códigos maestros locales para que puedas probar el desbloqueo al instante:
+  GOOGLE_SCRIPT_URL: "https://script.google.com/macros/s/AKfycbwH386j_ZhcQafxhKNB0KrzJp06UOhlFErshyORBT83r1X33YYsnW2yp9R90hERWiy0/exec", // Pega aquí tu URL de Google Apps Script terminada en /exec
   MASTER_CODES: ["PYQ-2026-PRO1", "PYQ-ADMIN-JGM"]
 };
 
@@ -36,7 +34,6 @@ const Game = {
   },
   pyodide: null,
   pyodideLoading: false,
-  activeInputId: null,
 
   init() {
     this.loadProgress();
@@ -55,7 +52,6 @@ const Game = {
       console.warn("Almacenamiento local restringido:", e);
     }
 
-    // Generar huella única de dispositivo para evitar que compartan el código
     if (!this.state.deviceId) {
       this.state.deviceId = "DEV-" + Math.random().toString(36).substring(2, 10).toUpperCase();
     }
@@ -121,7 +117,6 @@ const Game = {
     }
   },
 
-  // Verifica claves firmadas matemáticamente (Ej: PYQ-2026-XXXX) o contra Google Sheets
   validateSignedLocalKey(code) {
     if (COMMERCIAL_CONFIG.MASTER_CODES.includes(code)) return true;
     const match = /^PYQ-(\d{4})-([A-Z0-9]{4})$/.exec(code);
@@ -142,7 +137,6 @@ const Game = {
     statusMsg.className = "text-[11px] font-mono mt-2 text-cyan-300";
     statusMsg.textContent = "⏳ Verificando licencia...";
 
-    // 1. Si configuraste tu URL de Google Apps Script, valida en la nube
     if (COMMERCIAL_CONFIG.GOOGLE_SCRIPT_URL) {
       try {
         const url = `${COMMERCIAL_CONFIG.GOOGLE_SCRIPT_URL}?code=${encodeURIComponent(code)}&device=${encodeURIComponent(this.state.deviceId)}`;
@@ -161,7 +155,6 @@ const Game = {
       }
     }
 
-    // 2. Validador local / Código maestro
     if (this.validateSignedLocalKey(code)) {
       this.unlockProSuccess(code, statusMsg, "✅ ¡Licencia PRO activada! Todos los niveles están desbloqueados.");
     } else {
@@ -253,7 +246,6 @@ const Game = {
    * NAVEGACIÓN DE NIVELES Y REGLAS DE DESBLOQUEO
    *********************************************************************/
   isLevelLockedByPaywall(levelIdx) {
-    // El Nivel 1 (índice 0) siempre es GRATIS; los Niveles 2 al 7 requieren PRO
     return levelIdx > 0 && !this.state.isPro;
   },
 
@@ -364,19 +356,28 @@ const Game = {
     document.getElementById("statStreak").textContent = this.state.streak;
     document.getElementById("statXP").textContent = `${this.state.xp} XP`;
 
-    const soundIcon = document.getElementById("soundIcon");
-    if (soundIcon) soundIcon.textContent = this.state.soundEnabled ? "🔊" : "🔇";
+    document.querySelectorAll(".soundIconSpan").forEach(el => {
+      el.textContent = this.state.soundEnabled ? "🔊" : "🔇";
+    });
 
-    const proBtn = document.getElementById("btnProStatus");
-    if (proBtn) {
+    const proButtons = [
+      document.getElementById("btnProStatus"),
+      document.getElementById("btnProStatusMobile")
+    ];
+    proButtons.forEach(btn => {
+      if (!btn) return;
       if (this.state.isPro) {
-        proBtn.textContent = "👑 PRO ACTIVO";
-        proBtn.className = "text-[11px] font-cyber font-bold px-2.5 py-1 rounded-lg bg-emerald-500/20 border border-emerald-400 text-emerald-300";
+        btn.textContent = "👑 PRO ACTIVO";
+        btn.className = btn.id.includes("Mobile")
+          ? "text-[10px] font-cyber font-bold px-2.5 py-1 rounded-lg bg-emerald-500/20 border border-emerald-400 text-emerald-300 whitespace-nowrap"
+          : "hidden sm:flex text-[11px] font-cyber font-bold px-2.5 py-1 rounded-lg bg-emerald-500/20 border border-emerald-400 text-emerald-300 whitespace-nowrap";
       } else {
-        proBtn.textContent = "👑 DESBLOQUEAR PRO";
-        proBtn.className = "text-[11px] font-cyber font-bold px-2.5 py-1 rounded-lg bg-gradient-to-r from-amber-500 to-rose-500 text-slate-950 shadow-md";
+        btn.textContent = "👑 PRO";
+        btn.className = btn.id.includes("Mobile")
+          ? "text-[10px] font-cyber font-bold px-2.5 py-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-rose-500 text-slate-950 shadow-md whitespace-nowrap"
+          : "hidden sm:flex text-xs font-cyber font-bold px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-500 to-rose-500 text-slate-950 shadow-md whitespace-nowrap";
       }
-    }
+    });
 
     let totalDone = 0;
     Object.values(this.state.completedNodes).forEach(arr => totalDone += arr.length);
@@ -489,7 +490,7 @@ const Game = {
   },
 
   /*********************************************************************
-   * ARENA DE MICRO-EJERCICIOS (NODOS 1 AL 20)
+   * ARENA DE MICRO-EJERCICIOS (NODOS 1 AL 20) + CONSOLA PYTHON
    *********************************************************************/
   renderArena() {
     const arena = document.getElementById("arenaContainer");
@@ -632,7 +633,7 @@ const Game = {
       </div>
 
       <div class="mt-5 pt-3 border-t border-slate-800 relative z-10">
-        <div id="feedbackBanner" class="hidden mb-3 p-3 rounded-xl font-mono text-xs"></div>
+        <div id="feedbackBanner" class="hidden mb-3"></div>
         <div class="flex items-center justify-between gap-2">
           <button onclick="Game.buyExerciseReveal()" class="px-3 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-amber-300 font-mono text-xs">
             💡 Pista (-30 XP)
@@ -664,6 +665,68 @@ const Game = {
   removeOrderedLine(pos) { SoundFX.click(); this.state.orderedSelection.splice(pos, 1); this.renderArena(); },
   updateFreeCode(val) { this.state.freeCodeInput = val; },
   normalizeCode(str) { return String(str || "").trim().replace(/'/g, '"').replace(/\s+/g, ""); },
+
+  // Simulador de Terminal Python para mostrar el resultado exacto de cada ejercicio
+  getExerciseConsolePreview(ex) {
+    let fullCode = "";
+    if (ex.type === "fill_blank") {
+      let ansIdx = 0;
+      fullCode = ex.template.map(p => (p === "___" ? ex.answers[ansIdx++] : p)).join("");
+    } else if (ex.type === "order_lines") {
+      fullCode = ex.lines.join("\n");
+    } else if (ex.type === "multiple_choice") {
+      fullCode = ex.codePreview || "";
+    } else if (ex.type === "bug_hunt") {
+      fullCode = ex.choices[ex.correctIndex];
+    } else if (ex.type === "free_code") {
+      fullCode = `${ex.contextCode}\n${ex.acceptedAnswers[0]}`;
+    }
+
+    let outputText = "";
+    if (ex.type === "multiple_choice") {
+      outputText = `>>> Salida en consola:\n${ex.choices[ex.correctIndex]}`;
+    } else if (ex.type === "order_lines") {
+      if (fullCode.includes("xp_total = nodos_completados * 15")) {
+        outputText = ">>> XP ganada: 300";
+      } else if (fullCode.includes("bateria = 100")) {
+        outputText = ">>> 100";
+      } else if (fullCode.includes("Núcleo estable")) {
+        outputText = ">>> Núcleo estable";
+      } else if (fullCode.includes("total += n")) {
+        outputText = ">>> 6";
+      } else if (fullCode.includes("dron['velocidad'] = 300")) {
+        outputText = ">>> {'id': 'X-01', 'velocidad': 300}";
+      } else if (fullCode.includes("sorted(lecturas, reverse=True)")) {
+        outputText = ">>> [120, 80, 40]";
+      } else if (fullCode.includes("bat.cargar(30)")) {
+        outputText = ">>> 80";
+      } else if (fullCode.includes("list(pares(3))")) {
+        outputText = ">>> [0, 2, 4]";
+      } else if (fullCode.includes("data['intentos'] += 1")) {
+        outputText = ">>> {\"intentos\": 3}";
+      } else if (fullCode.includes("Counter(eventos)")) {
+        outputText = ">>> 2";
+      } else {
+        outputText = `>>> Código ejecutado:\n${fullCode}\n\n>>> Resultado: ${ex.explanation}`;
+      }
+    } else if (ex.type === "fill_blank") {
+      const printMatch = /print\(\s*["']([^"']+)["']\s*\)/.exec(fullCode);
+      if (printMatch) {
+        outputText = `>>> ${printMatch[1]}`;
+      } else if (fullCode.includes("Reactor al {carga} por ciento")) {
+        outputText = `>>> Variable en memoria:\nreporte = "Reactor al 95 por ciento"`;
+      } else {
+        const lastLine = fullCode.trim().split("\n").slice(-1)[0];
+        outputText = `>>> Línea evaluada: ${lastLine}\n>>> Resultado: ${ex.explanation}`;
+      }
+    } else if (ex.type === "free_code") {
+      outputText = `>>> Instrucción ejecutada: ${ex.acceptedAnswers[0]}\n>>> ${ex.explanation}`;
+    } else {
+      outputText = `>>> Parche verificado: ${ex.choices[ex.correctIndex]}\n>>> ${ex.explanation}`;
+    }
+
+    return { fullCode, outputText };
+  },
 
   buyExerciseReveal() {
     if (this.state.xp < 30) {
@@ -732,9 +795,27 @@ const Game = {
     const btn = document.getElementById("btnCheckAnswer");
     if (!banner) return;
     banner.classList.remove("hidden");
+
     if (success) {
-      banner.className = "mb-3 p-3 rounded-xl font-mono text-xs bg-emerald-950/80 border border-emerald-400 text-emerald-200";
-      banner.innerHTML = message;
+      const lvl = LEVEL_DATA[this.state.currentLevelIdx];
+      const ex = lvl.exercises[this.state.currentNodeIdx];
+      const consoleData = this.getExerciseConsolePreview(ex);
+
+      banner.className = "mb-3 space-y-2.5";
+      banner.innerHTML = `
+        <div class="bg-black/95 border border-cyan-500/40 rounded-xl p-3 font-mono text-xs shadow-inner">
+          <div class="flex items-center justify-between text-[10px] text-slate-400 border-b border-slate-800 pb-1 mb-1.5">
+            <span>>_ TERMINAL PYTHON (SALIDA DE EJECUCIÓN)</span>
+            <span class="text-emerald-400">● EXIT CODE 0</span>
+          </div>
+          <pre class="text-cyan-300 whitespace-pre-wrap leading-relaxed">${this.escapeHTML(consoleData.outputText)}</pre>
+        </div>
+
+        <div class="p-3 rounded-xl font-mono text-xs bg-emerald-950/80 border border-emerald-400 text-emerald-200">
+          ${message}
+        </div>
+      `;
+
       if (allowNext && btn) {
         btn.textContent = "SIGUIENTE ➔";
         btn.className = "flex-1 sm:flex-initial sm:min-w-[190px] py-3 px-5 rounded-xl bg-gradient-to-r from-emerald-400 to-cyan-500 font-cyber font-bold text-xs sm:text-sm text-slate-950 shadow-lg";
